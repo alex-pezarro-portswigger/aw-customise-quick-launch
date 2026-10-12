@@ -32,9 +32,6 @@ Extensions panel → install by git URL:
 https://github.com/alex-pezarro-portswigger/aw-quick-launch
 ```
 
-`package-lock.json` is committed because an install refuses without one, even with no
-dependencies.
-
 ## Tests
 
 ```
