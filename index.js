@@ -1,0 +1,24 @@
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+// The loader resolves `client` inside this directory's public/ subdir, so the
+// manifest has to say where it lives.
+export const dir = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
+  id: 'quick-launch',
+  label: 'Quick launch by usage',
+  help: 'Replaces the ⌘1–⌘3 quick-launch buttons with your three most-used model + effort pairs.',
+  defaultEnabled: true,
+  // 1.28.0: the `quickLaunch` dispatch field, api.dispatch.submit and `effort`
+  // on graph session/history nodes.
+  engines: { wranglerApi: '^1.28.0' },
+  // Hiding quickLaunch also turns off core's ⌘1–⌘3, so the bindings below own them.
+  hideDispatchField: ['quickLaunch'],
+  keybindings: [
+    { combo: 'mod+1', scope: 'dispatch' },
+    { combo: 'mod+2', scope: 'dispatch' },
+    { combo: 'mod+3', scope: 'dispatch' },
+  ],
+  client: 'public/client.js',
+};
