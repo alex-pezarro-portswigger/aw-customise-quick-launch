@@ -31,9 +31,9 @@ function setup({ agents = AGENTS, submit } = {}) {
 
 const graph = { sessions: [{ model: 'sonnet', effort: 'high' }], history: [] };
 
-test('registers at the model anchor, hiding quickLaunch, and binds mod+1..3 in dispatch scope', () => {
+test('registers at the top anchor, hiding quickLaunch, and binds mod+1..3 in dispatch scope', () => {
   const { field, binds } = setup();
-  assert.equal(field.at, 'model');
+  assert.equal(field.at, 'top');
   assert.deepEqual(field.hides, ['quickLaunch']);
   assert.deepEqual(binds.map((b) => [b.combo, b.scope]), [['mod+1', 'dispatch'], ['mod+2', 'dispatch'], ['mod+3', 'dispatch']]);
 });

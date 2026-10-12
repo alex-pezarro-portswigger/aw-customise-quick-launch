@@ -41,7 +41,7 @@ export default {
 
     reg.register('dispatch.field', {
       id: 'quick-launch',
-      at: 'model',
+      at: 'top',
       hides: ['quickLaunch'],
 
       mount(el) {
