@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { rankPairs, label } from './public/rank.js';
+import { rankPairs, label, parsePin, slotPairs } from './public/rank.js';
 
 const AGENTS = [
   {
@@ -65,4 +65,22 @@ test('label: short model name plus effort label, "default" when blank, name alon
   assert.equal(label({ model: 'opus', effort: '' }, AGENTS), 'Opus · default');
   assert.equal(label({ model: 'gpt', effort: '' }, AGENTS), 'GPT');
   assert.equal(label({ model: 'unknown', effort: '' }, AGENTS), 'unknown');
+});
+
+test('parsePin reads model and model:effort; blank or malformed is null', () => {
+  assert.deepEqual(parsePin('opus:high'), s('opus', 'high'));
+  assert.deepEqual(parsePin(' sonnet '), s('sonnet', ''));
+  assert.equal(parsePin(''), null);
+  assert.equal(parsePin(undefined), null);
+  assert.equal(parsePin('a:b:c'), null);
+});
+
+test('slotPairs keeps pins in place and fills the rest by rank without repeats', () => {
+  const graph = { sessions: [s('sonnet', 'high'), s('sonnet', 'high'), s('opus', 'low')], history: [] };
+  assert.deepEqual(slotPairs(graph, AGENTS, ['', 'sonnet:high', 'haiku']), [s('opus', 'low'), s('sonnet', 'high'), s('haiku', '')]);
+});
+
+test('slotPairs ignores a pin the agents cannot launch', () => {
+  const graph = { sessions: [s('sonnet', 'high')], history: [] };
+  assert.deepEqual(slotPairs(graph, AGENTS, ['nope:high', 'opus:max']), [s('sonnet', 'high'), s('opus', ''), s('sonnet', '')]);
 });

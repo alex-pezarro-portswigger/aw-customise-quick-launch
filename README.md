@@ -7,8 +7,12 @@ that replaces the dispatch modal's ⌘1–⌘3 quick-launch buttons with your th
 - Pairs are counted across live sessions and history (graph `effort`, host API 1.28.0).
   Pairs the current agent list can't launch are dropped; Opus, Sonnet and Fable at default
   effort fill any empty slot.
-- The buttons sit under the prompt (the `top` dispatch-field anchor). Core's row is hidden
-  with `hideDispatchField: ['quickLaunch']`, which also hands ⌘1–⌘3 to this extension.
+- The buttons sit where core's did, beside Cancel/Launch. The field mounts at the `top`
+  anchor and moves its row into the modal footer. Core's row is hidden with
+  `hideDispatchField: ['quickLaunch']`, which also hands ⌘1–⌘3 to this extension.
+- Each slot can be pinned in the extension's settings (Settings → Extensions) with a model and an effort select, stored as
+  `model` or `model:effort`, e.g. `opus:high`. Blank slots fill by usage, skipping pinned
+  pairs; a pin the current agents can't launch is ignored.
 - A click or shortcut calls `api.dispatch.submit({ model, effort })`, so core validation
   still applies. Hidden in schedule mode.
 

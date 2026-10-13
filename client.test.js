@@ -13,20 +13,24 @@ function stubEl() {
 
 const AGENTS = [{ id: 'claude', models: [{ value: 'opus', label: 'Opus' }, { value: 'sonnet', label: 'Sonnet' }, { value: 'fable', label: 'Fable' }], efforts: [{ value: 'high', label: 'High' }] }];
 
-function setup({ agents = AGENTS, submit } = {}) {
+function setup({ agents = AGENTS, submit, settings = {} } = {}) {
   const binds = [];
   const submits = [];
+  const sets = [];
   let field = null;
   let onAgents = null;
   const api = {
     agents: Object.assign(() => agents, { onChange: (f) => { onAgents = f; return () => {}; } }),
     keys: { bind: (b) => { binds.push(b); return () => {}; } },
+    settings: Object.assign(() => settings, { set: async (k, v) => { sets.push([k, v]); } }),
     dispatch: { submit: submit || (async (p) => { submits.push(p); }) },
   };
-  client.register({ api, register: (slot, c) => { assert.equal(slot, 'dispatch.field'); field = c; } });
+  const regs = {};
+  client.register({ api, register: (slot, c) => { regs[slot] = c; } });
+  field = regs['dispatch.field'];
   const el = stubEl();
   field.mount(el);
-  return { binds, submits, field, el, onAgents: (a) => onAgents(a) };
+  return { binds, submits, field, el, regs, api, sets, onAgents: (a) => onAgents(a) };
 }
 
 const graph = { sessions: [{ model: 'sonnet', effort: 'high' }], history: [] };
@@ -41,9 +45,9 @@ test('registers at the top anchor, hiding quickLaunch, and binds mod+1..3 in dis
 test('update labels the buttons by rank with ⌘ hints', () => {
   const { field, el } = setup();
   field.update(el, { mode: 'launch' }, graph);
-  assert.match(el.btns[0].innerHTML, /Sonnet · High <span class="kbd">⌘1<\/span>/);
+  assert.match(el.btns[0].innerHTML, /<span>Sonnet<\/span><span[^>]*>High<\/span><\/span> <span class="kbd">⌘1<\/span>/);
   assert.equal(el.btns[0].title, 'Launch with Sonnet · High (⌘1)');
-  assert.match(el.btns[1].innerHTML, /Opus · default/);
+  assert.match(el.btns[1].innerHTML, /<span>Opus<\/span><span[^>]*>default/);
 });
 
 test('click and key both submit the slot pair; default effort is undefined', async () => {
@@ -70,7 +74,7 @@ test('before agents arrive the backfill renders; an agents change re-ranks on ne
   assert.match(el.btns[0].innerHTML, /opus/);
   onAgents(AGENTS);
   field.update(el, { mode: 'launch' }, graph);
-  assert.match(el.btns[0].innerHTML, /Sonnet · High/);
+  assert.match(el.btns[0].innerHTML, /<span>Sonnet<\/span><span[^>]*>High/);
 });
 
 test('a rejected submit is caught and logged', async () => {
@@ -80,4 +84,11 @@ test('a rejected submit is caught and logged', async () => {
   console.warn = (...a) => seen.push(a.join(' '));
   try { binds[0].run(); await new Promise((r) => setImmediate(r)); } finally { console.warn = orig; }
   assert.match(seen[0], /dispatch blocked by validation/);
+});
+
+test('a pinned slot from settings overrides the ranking', () => {
+  const { field, el } = setup({ settings: { slot1: 'fable:high' } });
+  field.update(el, { mode: 'launch' }, graph);
+  assert.match(el.btns[0].innerHTML, /<span>Fable<\/span><span[^>]*>High/);
+  assert.match(el.btns[1].innerHTML, /<span>Sonnet<\/span><span[^>]*>High/);
 });

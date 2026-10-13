@@ -20,5 +20,16 @@ export default {
     { combo: 'mod+2', scope: 'dispatch' },
     { combo: 'mod+3', scope: 'dispatch' },
   ],
+  // Each slot can be pinned to "model" or "model:effort"; blank slots fill by
+  // usage. Hidden: the client's settings.panel edits them with model and effort
+  // selects built from the live agent list, which a manifest select can't be.
+  settings: [1, 2, 3].map((n) => ({
+    key: `slot${n}`,
+    label: `Slot ${n}`,
+    type: 'text',
+    hidden: true,
+    pattern: '[^:\\s]+(:[^:\\s]+)?',
+    maxLength: 100,
+  })),
   client: 'public/client.js',
 };
