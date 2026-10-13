@@ -59,3 +59,23 @@ export function label(pair, agents) {
   const e = efforts.find((x) => x.value === pair.effort);
   return `${name} · ${e?.label || pair.effort}`;
 }
+
+// "opus:high" → { model: 'opus', effort: 'high' }; "opus" → default effort.
+// Blank or malformed → null (the slot ranks by usage).
+export function parsePin(text) {
+  const m = /^\s*([^:\s]+)(?::([^:\s]+))?\s*$/.exec(String(text ?? ''));
+  return m ? { model: m[1], effort: m[2] || '' } : null;
+}
+
+// n slots: each launchable pin keeps its slot; the rest take the usage ranking
+// in order, skipping pairs already pinned.
+export function slotPairs(graph, agents, pins = [], n = 3) {
+  agents = Array.isArray(agents) ? agents : [];
+  const fixed = Array.from({ length: n }, (_, i) => {
+    const p = parsePin(pins[i]);
+    return p && allowed(p.model, p.effort, agents) ? p : null;
+  });
+  const same = (a, b) => a && b && a.model === b.model && a.effort === b.effort;
+  const ranked = rankPairs(graph, agents, n * 2).filter((p) => !fixed.some((f) => same(f, p)));
+  return fixed.map((f) => f || ranked.shift()).filter(Boolean);
+}
