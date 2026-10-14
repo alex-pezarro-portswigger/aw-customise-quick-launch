@@ -2,7 +2,7 @@
 
 An [Agent Wrangler](https://github.com/alex-pezarro-portswigger/agent-wrangler) extension
 that replaces the dispatch modal's ⌘1–⌘3 quick-launch buttons with your most-used
-**model + effort** pairs, e.g. *Sonnet · High*, *Opus · Low*, *Opus · default*. Up to six slots, three per row.
+**model + effort** pairs (optionally on a runtime), e.g. *Sonnet · High*, *Opus · Low*, *Opus · default*. Up to six slots, three per row.
 
 - Pairs are counted across live sessions and history (graph `effort`, host API 1.28.0).
   Pairs the current agent list can't launch are dropped; Opus, Sonnet and Fable at default
@@ -14,10 +14,17 @@ that replaces the dispatch modal's ⌘1–⌘3 quick-launch buttons with your mo
 - Each slot can be pinned in the extension's settings (Settings → Extensions) with a model and an effort select, stored as
   `model` or `model:effort`, e.g. `opus:high`. Blank slots fill by usage, skipping pinned
   pairs; a pin the current agents can't launch is ignored.
-- A click or shortcut calls `api.dispatch.submit({ model, effort })`, so core validation
-  still applies. Hidden in schedule mode.
+- When more than Local is offered, each slot also has a **runtime** select, stored as
+  `@runtime`, e.g. `sonnet:high@devcontainer`. A runtime that owns its models (Bifrost)
+  swaps the model select for a model id box and uses Claude's efforts:
+  `gpt-5.4:high@bifrost` launches Bifrost on gpt-5.4 at High. A pin on a runtime that
+  isn't offered is ignored. Sessions on such a runtime don't count towards usage, since
+  the board doesn't know their model.
+- A click or shortcut calls `api.dispatch.submit({ model, effort, runtime })` (runtime
+  `local` unless pinned), so core validation and the runtime's own preflight still apply.
+  Hidden in schedule mode.
 
-Requires Agent Wrangler host API **≥ 1.28.0**. No capabilities (`requires: []`).
+Requires Agent Wrangler host API **≥ 1.33.0**. No capabilities (`requires: []`).
 
 ## Shortcuts
 

@@ -13,7 +13,7 @@ function stubEl() {
 
 const AGENTS = [{ id: 'claude', models: [{ value: 'opus', label: 'Opus' }, { value: 'sonnet', label: 'Sonnet' }, { value: 'fable', label: 'Fable' }], efforts: [{ value: 'high', label: 'High' }] }];
 
-function setup({ agents = AGENTS, submit, settings = {} } = {}) {
+function setup({ agents = AGENTS, submit, settings = {}, runtimes } = {}) {
   const binds = [];
   const submits = [];
   const sets = [];
@@ -24,6 +24,7 @@ function setup({ agents = AGENTS, submit, settings = {} } = {}) {
     keys: { bind: (b) => { binds.push(b); return () => {}; } },
     settings: Object.assign(() => settings, { set: async (k, v) => { sets.push([k, v]); } }),
     dispatch: { submit: submit || (async (p) => { submits.push(p); }) },
+    ...(runtimes ? { runtimes: () => runtimes } : {}),
   };
   const regs = {};
   client.register({ api, register: (slot, c) => { regs[slot] = c; } });
@@ -56,7 +57,7 @@ test('click and key both submit the slot pair; default effort is undefined', asy
   el.btns[0].handlers.click();
   binds[1].run();
   await new Promise((r) => setImmediate(r));
-  assert.deepEqual(submits, [{ model: 'sonnet', effort: 'high' }, { model: 'opus', effort: undefined }]);
+  assert.deepEqual(submits, [{ model: 'sonnet', effort: 'high', runtime: 'local' }, { model: 'opus', effort: undefined, runtime: 'local' }]);
 });
 
 test('schedule mode hides the row and keys do nothing', async () => {
@@ -118,4 +119,22 @@ test('keys beyond the slot count do nothing', async () => {
   binds[5].run();
   await new Promise((r) => setImmediate(r));
   assert.deepEqual(submits, []);
+});
+
+const RUNTIMES = [{ id: 'local', label: 'Local', ownsModel: false }, { id: 'bifrost', label: 'Bifrost (OpenAI)', ownsModel: true }];
+
+test('a slot pinned to a model-owning runtime shows its model, effort and runtime, and launches on it', async () => {
+  const { field, el, binds, submits } = setup({ settings: { slot1: 'gpt-5.4:high@bifrost' }, runtimes: RUNTIMES });
+  field.update(el, { mode: 'launch' }, graph);
+  assert.match(el.btns[0].innerHTML, /<span>gpt-5\.4<\/span><span[^>]*>High · Bifrost<\/span>/);
+  assert.equal(el.btns[0].title, 'Launch with gpt-5.4 · High · Bifrost (⌘1)');
+  binds[0].run();
+  await new Promise((r) => setImmediate(r));
+  assert.deepEqual(submits, [{ model: 'gpt-5.4', effort: 'high', runtime: 'bifrost' }]);
+});
+
+test('a runtime pin is ignored when that runtime is not offered', () => {
+  const { field, el } = setup({ settings: { slot1: 'gpt-5.4@bifrost' } });
+  field.update(el, { mode: 'launch' }, graph);
+  assert.match(el.btns[0].innerHTML, /<span>Sonnet<\/span>/);
 });
