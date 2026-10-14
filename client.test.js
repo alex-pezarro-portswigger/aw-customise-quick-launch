@@ -5,7 +5,7 @@ import client from './public/client.js';
 // Stub DOM: just enough for three buttons and a classList.
 function stubEl() {
   const mk = () => ({ style: {}, innerHTML: '', title: '', handlers: {}, addEventListener(t, f) { this.handlers[t] = f; } });
-  const btns = [mk(), mk(), mk()];
+  const btns = [mk(), mk(), mk(), mk(), mk(), mk()];
   const cls = new Set();
   const wrap = { classList: { toggle: (c, on) => (on ? cls.add(c) : cls.delete(c)), contains: (c) => cls.has(c) } };
   return { btns, wrap, innerHTML: '', querySelectorAll: () => btns, querySelector: () => wrap };
@@ -35,11 +35,11 @@ function setup({ agents = AGENTS, submit, settings = {} } = {}) {
 
 const graph = { sessions: [{ model: 'sonnet', effort: 'high' }], history: [] };
 
-test('registers at the top anchor, hiding quickLaunch, and binds mod+1..3 in dispatch scope', () => {
+test('registers at the top anchor, hiding quickLaunch, and binds mod+1..6 in dispatch scope', () => {
   const { field, binds } = setup();
   assert.equal(field.at, 'top');
   assert.deepEqual(field.hides, ['quickLaunch']);
-  assert.deepEqual(binds.map((b) => [b.combo, b.scope]), [['mod+1', 'dispatch'], ['mod+2', 'dispatch'], ['mod+3', 'dispatch']]);
+  assert.deepEqual(binds.map((b) => [b.combo, b.scope]), [1, 2, 3, 4, 5, 6].map((n) => [`mod+${n}`, 'dispatch']));
 });
 
 test('update labels the buttons by rank with ⌘ hints', () => {
@@ -91,4 +91,31 @@ test('a pinned slot from settings overrides the ranking', () => {
   field.update(el, { mode: 'launch' }, graph);
   assert.match(el.btns[0].innerHTML, /<span>Fable<\/span><span[^>]*>High/);
   assert.match(el.btns[1].innerHTML, /<span>Sonnet<\/span><span[^>]*>High/);
+});
+
+test('the slots setting sets how many buttons show; default is three', () => {
+  const three = setup();
+  three.field.update(three.el, { mode: 'launch' }, graph);
+  assert.deepEqual(three.el.btns.map((b) => b.style.display), ['', '', '', 'none', 'none', 'none']);
+  const six = setup({ settings: { slots: 6 } });
+  six.field.update(six.el, { mode: 'launch' }, graph);
+  assert.deepEqual(six.el.btns.map((b) => b.style.display), ['', '', '', '', '', '']);
+  assert.match(six.el.btns[5].innerHTML, /⌘6/);
+});
+
+test('slots is clamped to 1-6', () => {
+  const lo = setup({ settings: { slots: 0 } });
+  lo.field.update(lo.el, { mode: 'launch' }, graph);
+  assert.equal(lo.el.btns.filter((b) => b.style.display === '').length, 3);
+  const hi = setup({ settings: { slots: 99 } });
+  hi.field.update(hi.el, { mode: 'launch' }, graph);
+  assert.equal(hi.el.btns.filter((b) => b.style.display === '').length, 6);
+});
+
+test('keys beyond the slot count do nothing', async () => {
+  const { field, el, binds, submits } = setup();
+  field.update(el, { mode: 'launch' }, graph);
+  binds[5].run();
+  await new Promise((r) => setImmediate(r));
+  assert.deepEqual(submits, []);
 });

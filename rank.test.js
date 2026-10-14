@@ -43,10 +43,10 @@ test('drops models no longer offered and efforts the agent does not offer; skips
   ]);
 });
 
-test('backfill skips duplicates and models not offered', () => {
+test('backfill skips duplicates and models not offered, then offers the rest', () => {
   const graph = { sessions: [s('opus', null)], history: [] };
   const agents = [{ id: 'claude', models: [{ value: 'opus', label: 'Opus' }, { value: 'fable', label: 'Fable' }, { value: 'haiku', label: 'Haiku' }], efforts: [] }];
-  assert.deepEqual(rankPairs(graph, agents), [{ model: 'opus', effort: '' }, { model: 'fable', effort: '' }]);
+  assert.deepEqual(rankPairs(graph, agents), [{ model: 'opus', effort: '' }, { model: 'fable', effort: '' }, { model: 'haiku', effort: '' }]);
 });
 
 test('empty graph gives the three backfill pairs', () => {
@@ -83,4 +83,12 @@ test('slotPairs keeps pins in place and fills the rest by rank without repeats',
 test('slotPairs ignores a pin the agents cannot launch', () => {
   const graph = { sessions: [s('sonnet', 'high')], history: [] };
   assert.deepEqual(slotPairs(graph, AGENTS, ['nope:high', 'opus:max']), [s('sonnet', 'high'), s('opus', ''), s('sonnet', '')]);
+});
+
+test('rankPairs backfills past three with every launchable pair', () => {
+  const agents = [{ id: 'claude', models: [{ value: 'opus', label: 'Opus' }, { value: 'sonnet', label: 'Sonnet' }, { value: 'fable', label: 'Fable' }], efforts: [{ value: 'low', label: 'Low' }, { value: 'high', label: 'High' }] }];
+  const out = rankPairs({}, agents, 6);
+  assert.equal(out.length, 6);
+  assert.deepEqual(out.slice(0, 3).map((p) => p.model), ['opus', 'sonnet', 'fable']);
+  assert.equal(new Set(out.map((p) => `${p.model}:${p.effort}`)).size, 6);
 });
