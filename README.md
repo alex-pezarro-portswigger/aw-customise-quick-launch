@@ -1,4 +1,4 @@
-# aw-quick-launch
+# aw-customise-quick-launch
 
 An [Agent Wrangler](https://github.com/alex-pezarro-portswigger/agent-wrangler) extension
 that replaces the dispatch modal's ⌘1–⌘3 quick-launch buttons with your most-used
@@ -35,7 +35,7 @@ They are listed under *Customise quick launch* in Settings → Shortcuts.
 Extensions panel → install by git URL:
 
 ```
-https://github.com/alex-pezarro-portswigger/aw-quick-launch
+https://github.com/alex-pezarro-portswigger/aw-customise-quick-launch
 ```
 
 ## Tests
