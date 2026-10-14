@@ -6,8 +6,8 @@
   "description": "Agent Wrangler extension: one-click launch buttons for your most-used model + effort pairs.",
   "wranglerExtension": {
     "id": "quick-launch",
-    "label": "Quick launch by usage",
-    "description": "Replaces the ⌘1–⌘3 quick-launch buttons with your most-used model + effort pairs, up to six.",
+    "label": "Customise quick launch",
+    "description": "Customise the dispatch quick-launch buttons: up to six slots, each pinned to a model + effort or filled by your most-used pairs.",
     "requires": []
   },
   "scripts": {

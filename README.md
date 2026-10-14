@@ -28,7 +28,7 @@ Requires Agent Wrangler host API **≥ 1.28.0**. No capabilities (`requires: []`
 | ⌘3 / Ctrl+3 | Launch with slot 3 |
 | ⌘4–⌘6 / Ctrl+4–6 | Launch with slots 4–6, when added |
 
-They are listed under *Quick launch by usage* in Settings → Shortcuts.
+They are listed under *Customise quick launch* in Settings → Shortcuts.
 
 ## Install
 

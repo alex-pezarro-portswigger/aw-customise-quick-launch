@@ -7,8 +7,8 @@ export const dir = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   id: 'quick-launch',
-  label: 'Quick launch by usage',
-  help: 'Replaces the ⌘1–⌘3 quick-launch buttons with your most-used model + effort pairs, up to six.',
+  label: 'Customise quick launch',
+  help: 'Customise the dispatch quick-launch buttons: up to six slots, each pinned to a model + effort or filled by your most-used pairs.',
   defaultEnabled: true,
   // 1.28.0: the `quickLaunch` dispatch field, api.dispatch.submit and `effort`
   // on graph session/history nodes.
