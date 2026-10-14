@@ -6,7 +6,9 @@ import { slotPairs, label, parsePin } from './rank.js';
 // Copied from core's app.js — it isn't exported.
 export const QUICK_LAUNCH_ICON = '<svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>';
 
-const SLOTS = 3;
+export const MAX_SLOTS = 6;
+export const DEFAULT_SLOTS = 3;
+const PER_ROW = 3;
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -32,7 +34,7 @@ export default {
 
     api.agents?.onChange?.((list) => { agents = Array.isArray(list) ? list : []; });
 
-    for (let n = 1; n <= SLOTS; n++) {
+    for (let n = 1; n <= MAX_SLOTS; n++) {
       api.keys.bind({
         combo: `mod+${n}`,
         scope: 'dispatch',
@@ -47,7 +49,7 @@ export default {
       hides: ['quickLaunch'],
 
       mount(el) {
-        el.innerHTML = `<div class="quick-launch">${'<button type="button" class="ghost quick-launch-btn" style="white-space:nowrap"></button>'.repeat(SLOTS)}</div>`;
+        el.innerHTML = `<div class="quick-launch" style="display:grid;grid-template-columns:repeat(${PER_ROW},auto);gap:6px">${'<button type="button" class="ghost quick-launch-btn" style="white-space:nowrap"></button>'.repeat(MAX_SLOTS)}</div>`;
         row = el.querySelector('.quick-launch');
         buttons = [...el.querySelectorAll('.quick-launch-btn')];
         buttons.forEach((b, i) => b.addEventListener('click', () => launch(i)));
@@ -61,9 +63,10 @@ export default {
       update(el, ctx, graph) {
         mode = ctx?.mode || 'launch';
         row?.classList.toggle('hidden', mode !== 'launch');
+        const count = slotCount(api);
         pairs = agents.length
-          ? slotPairs(graph, agents, pins(api), SLOTS)
-          : ['opus', 'sonnet', 'fable'].map((model) => ({ model, effort: '' }));
+          ? slotPairs(graph, agents, pins(api), count)
+          : ['opus', 'sonnet', 'fable'].slice(0, count).map((model) => ({ model, effort: '' }));
         buttons.forEach((btn, i) => {
           const p = pairs[i];
           btn.style.display = p ? '' : 'none';
@@ -84,11 +87,17 @@ export default {
 
     reg.register('settings.panel', {
       id: 'quick-launch-slots',
-      mount(el) { renderSlotEditor(el, safeAgents(api), pins(api)); },
+      mount(el) { renderSlotEditor(el, safeAgents(api), pins(api).slice(0, slotCount(api))); },
       save(el) {
         const current = pins(api);
-        return Promise.all(slotValues(el).map((v, i) =>
-          v === (current[i] || '') ? null : api.settings.set(`slot${i + 1}`, v)));
+        const values = slotValues(el);
+        const writes = [];
+        if (values.length !== slotCount(api)) writes.push(api.settings.set('slots', values.length));
+        for (let i = 0; i < MAX_SLOTS; i++) {
+          const v = values[i] || '';
+          if (v !== (current[i] || '')) writes.push(api.settings.set(`slot${i + 1}`, v));
+        }
+        return Promise.all(writes);
       },
     });
   },
@@ -99,37 +108,62 @@ function safeAgents(api) {
 }
 
 function pins(api) {
-  try { const s = api.settings?.() || {}; return [s.slot1, s.slot2, s.slot3]; } catch { return []; }
+  try { const s = api.settings?.() || {}; return Array.from({ length: MAX_SLOTS }, (_, i) => s[`slot${i + 1}`]); } catch { return []; }
 }
 
-// One row per slot: a model select ("By usage" = unpinned) and an effort select
-// listing that model's agent's efforts.
+// How many buttons to show: the `slots` setting, clamped to 1–MAX_SLOTS.
+function slotCount(api) {
+  try {
+    const n = Math.trunc(Number(api.settings?.()?.slots));
+    return n >= 1 ? Math.min(n, MAX_SLOTS) : DEFAULT_SLOTS;
+  } catch { return DEFAULT_SLOTS; }
+}
+
+// One row per slot: a model select ("By usage" = unpinned), an effort select
+// listing that model's agent's efforts, and a remove button. "Add slot" appends a
+// row up to MAX_SLOTS; removing one shifts the later pins up.
 export function renderSlotEditor(el, agents, current) {
   const models = agents.flatMap((a) => (a.models || []).map((m) => ({ ...m, agent: a })));
   const opt = (value, text, sel) => `<option value="${esc(value)}"${sel ? ' selected' : ''}>${esc(text)}</option>`;
-  el.innerHTML = `<div class="quick-launch-slots" style="display:grid;grid-template-columns:auto 1fr 1fr;gap:8px;align-items:center">${
-    [0, 1, 2].map((i) => {
-      const pin = parsePin(current[i]);
-      const known = pin && models.some((m) => m.value === pin.model);
-      return `<label>Slot ${i + 1} (⌘${i + 1})</label>`
-        + `<select class="ql-model" data-slot="${i}">${opt('', 'By usage', !pin)}${
-          known ? '' : pin ? opt(pin.model, pin.model, true) : ''}${
-          models.map((m) => opt(m.value, `${m.label}${agents.length > 1 ? ` (${m.agent.label || m.agent.id})` : ''}`, pin?.model === m.value)).join('')}</select>`
-        + `<select class="ql-effort" data-slot="${i}" data-current="${esc(pin?.effort || '')}"></select>`;
-    }).join('')
-  }</div>`;
-  const fillEfforts = (modelSel) => {
-    const effortSel = el.querySelector(`.ql-effort[data-slot="${modelSel.dataset.slot}"]`);
-    const m = models.find((x) => x.value === modelSel.value);
-    const efforts = m?.agent.efforts || [];
-    const want = effortSel.value || effortSel.dataset.current;
-    effortSel.innerHTML = opt('', 'Default effort', true) + efforts.map((e) => opt(e.value, e.label, e.value === want)).join('');
-    effortSel.disabled = !modelSel.value || !efforts.length;
+  let values = Array.from({ length: Math.max(1, current.length) }, (_, i) => current[i] || '');
+
+  const draw = () => {
+    el.innerHTML = `<div class="quick-launch-slots" style="display:grid;grid-template-columns:auto 1fr 1fr auto;gap:8px;align-items:center">${
+      values.map((v, i) => {
+        const pin = parsePin(v);
+        const known = pin && models.some((m) => m.value === pin.model);
+        return `<label>Slot ${i + 1} (⌘${i + 1})</label>`
+          + `<select class="ql-model" data-slot="${i}">${opt('', 'By usage', !pin)}${
+            known ? '' : pin ? opt(pin.model, pin.model, true) : ''}${
+            models.map((m) => opt(m.value, `${m.label}${agents.length > 1 ? ` (${m.agent.label || m.agent.id})` : ''}`, pin?.model === m.value)).join('')}</select>`
+          + `<select class="ql-effort" data-slot="${i}" data-current="${esc(pin?.effort || '')}"></select>`
+          + `<button type="button" class="ghost ql-remove" data-slot="${i}" title="Remove slot ${i + 1}"${values.length <= 1 ? ' disabled' : ''}>Remove</button>`;
+      }).join('')
+    }</div><div style="margin-top:8px"><button type="button" class="ghost ql-add"${values.length >= MAX_SLOTS ? ' disabled' : ''}>Add slot (${values.length}/${MAX_SLOTS})</button></div>`;
+    const fillEfforts = (modelSel) => {
+      const effortSel = el.querySelector(`.ql-effort[data-slot="${modelSel.dataset.slot}"]`);
+      const m = models.find((x) => x.value === modelSel.value);
+      const efforts = m?.agent.efforts || [];
+      const want = effortSel.value || effortSel.dataset.current;
+      effortSel.innerHTML = opt('', 'Default effort', true) + efforts.map((e) => opt(e.value, e.label, e.value === want)).join('');
+      effortSel.disabled = !modelSel.value || !efforts.length;
+    };
+    el.querySelectorAll('.ql-model').forEach((s) => {
+      fillEfforts(s);
+      s.addEventListener('change', () => fillEfforts(s));
+    });
+    el.querySelectorAll('.ql-remove').forEach((b) => b.addEventListener('click', () => {
+      values = slotValues(el);
+      values.splice(Number(b.dataset.slot), 1);
+      draw();
+    }));
+    el.querySelector('.ql-add')?.addEventListener('click', () => {
+      if (values.length >= MAX_SLOTS) return;
+      values = [...slotValues(el), ''];
+      draw();
+    });
   };
-  el.querySelectorAll('.ql-model').forEach((s) => {
-    fillEfforts(s);
-    s.addEventListener('change', () => fillEfforts(s));
-  });
+  draw();
 }
 
 // ['opus:high', '', 'sonnet'] from the editor's selects.

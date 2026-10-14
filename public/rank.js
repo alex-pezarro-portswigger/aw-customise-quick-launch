@@ -19,8 +19,8 @@ function allowed(model, effort, agents) {
 
 // Top n { model, effort } pairs ('' effort = agent default) by how often they were
 // launched across live sessions and history; ties keep first-seen order. Pairs the
-// current agent list can't launch are dropped, and opus/sonnet/fable at default
-// backfill any empty slot.
+// current agent list can't launch are dropped, and opus/sonnet/fable at default,
+// then every other launchable pair, backfill any empty slot.
 export function rankPairs(graph, agents, n = 3) {
   agents = Array.isArray(agents) ? agents : [];
   const counts = new Map();
@@ -38,7 +38,11 @@ export function rankPairs(graph, agents, n = 3) {
     });
   const picks = [];
   const has = (p) => picks.some((q) => q.model === p.model && q.effort === p.effort);
-  for (const p of [...ranked, ...FALLBACK_MODELS.map((model) => ({ model, effort: '' }))]) {
+  // Past the usual three, every other launchable pair (each model at default,
+  // then at each effort) so six slots can still fill.
+  const every = agents.flatMap((a) => (a.models || []).flatMap((m) =>
+    ['', ...(a.efforts || []).map((e) => e.value)].map((effort) => ({ model: m.value, effort }))));
+  for (const p of [...ranked, ...FALLBACK_MODELS.map((model) => ({ model, effort: '' })), ...every]) {
     if (picks.length >= n) break;
     if (allowed(p.model, p.effort, agents) && !has(p)) picks.push(p);
   }

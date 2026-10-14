@@ -7,7 +7,7 @@
   "wranglerExtension": {
     "id": "quick-launch",
     "label": "Quick launch by usage",
-    "description": "Replaces the ⌘1–⌘3 quick-launch buttons with your three most-used model + effort pairs.",
+    "description": "Replaces the ⌘1–⌘3 quick-launch buttons with your most-used model + effort pairs, up to six.",
     "requires": []
   },
   "scripts": {

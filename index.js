@@ -8,28 +8,28 @@ export const dir = path.dirname(fileURLToPath(import.meta.url));
 export default {
   id: 'quick-launch',
   label: 'Quick launch by usage',
-  help: 'Replaces the ⌘1–⌘3 quick-launch buttons with your three most-used model + effort pairs.',
+  help: 'Replaces the ⌘1–⌘3 quick-launch buttons with your most-used model + effort pairs, up to six.',
   defaultEnabled: true,
   // 1.28.0: the `quickLaunch` dispatch field, api.dispatch.submit and `effort`
   // on graph session/history nodes.
   engines: { wranglerApi: '^1.28.0' },
   // Hiding quickLaunch also turns off core's ⌘1–⌘3, so the bindings below own them.
   hideDispatchField: ['quickLaunch'],
-  keybindings: [
-    { combo: 'mod+1', scope: 'dispatch' },
-    { combo: 'mod+2', scope: 'dispatch' },
-    { combo: 'mod+3', scope: 'dispatch' },
-  ],
+  keybindings: [1, 2, 3, 4, 5, 6].map((n) => ({ combo: `mod+${n}`, scope: 'dispatch' })),
   // Each slot can be pinned to "model" or "model:effort"; blank slots fill by
   // usage. Hidden: the client's settings.panel edits them with model and effort
   // selects built from the live agent list, which a manifest select can't be.
-  settings: [1, 2, 3].map((n) => ({
-    key: `slot${n}`,
-    label: `Slot ${n}`,
-    type: 'text',
-    hidden: true,
-    pattern: '[^:\\s]+(:[^:\\s]+)?',
-    maxLength: 100,
-  })),
+  // `slots` is how many are shown (1–6, default 3), set by the same editor.
+  settings: [
+    { key: 'slots', label: 'Slots', type: 'number', hidden: true, min: 1, max: 6, step: 1 },
+    ...[1, 2, 3, 4, 5, 6].map((n) => ({
+      key: `slot${n}`,
+      label: `Slot ${n}`,
+      type: 'text',
+      hidden: true,
+      pattern: '[^:\\s]+(:[^:\\s]+)?',
+      maxLength: 100,
+    })),
+  ],
   client: 'public/client.js',
 };
