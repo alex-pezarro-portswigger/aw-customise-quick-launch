@@ -46,9 +46,23 @@ test('registers at the top anchor, hiding quickLaunch, and binds mod+1..6 in dis
 test('update labels the buttons by rank with ⌘ hints', () => {
   const { field, el } = setup();
   field.update(el, { mode: 'launch' }, graph);
-  assert.match(el.btns[0].innerHTML, /<span>Sonnet<\/span><span[^>]*>High<\/span><\/span> <span class="kbd">⌘1<\/span>/);
+  assert.match(el.btns[0].innerHTML, /<span[^>]*>Sonnet<\/span><span[^>]*>High<\/span><\/span> <span class="kbd"[^>]*>⌘1<\/span>/);
   assert.equal(el.btns[0].title, 'Launch with Sonnet · High (⌘1)');
-  assert.match(el.btns[1].innerHTML, /<span>Opus<\/span><span[^>]*>default/);
+  assert.match(el.btns[1].innerHTML, /<span[^>]*>Opus<\/span><span[^>]*>default/);
+});
+
+test('the row and its buttons can shrink to fit the footer, three per row', () => {
+  const { el } = setup();
+  assert.match(el.innerHTML, /grid-template-columns:repeat\(3,minmax\(0,max-content\)\)/);
+  assert.match(el.innerHTML, /class="quick-launch" style="[^"]*min-width:0/);
+  assert.match(el.innerHTML, /class="ghost quick-launch-btn" style="[^"]*min-width:0/);
+});
+
+test('long label lines ellipsize and the ⌘ badge never shrinks', () => {
+  const { field, el } = setup({ settings: { slot1: 'gpt-5.4:high@bifrost' }, runtimes: [{ id: 'bifrost', label: 'Bifrost (OpenAI)', ownsModel: true, efforts: [{ value: 'high', label: 'High' }] }] });
+  field.update(el, { mode: 'launch' }, graph);
+  assert.match(el.btns[0].innerHTML, /<span style="[^"]*text-overflow:ellipsis[^"]*">High · Bifrost<\/span>/);
+  assert.match(el.btns[0].innerHTML, /<span class="kbd" style="flex:0 0 auto">⌘1<\/span>/);
 });
 
 test('click and key both submit the slot pair; default effort is undefined', async () => {
@@ -75,7 +89,7 @@ test('before agents arrive the backfill renders; an agents change re-ranks on ne
   assert.match(el.btns[0].innerHTML, /opus/);
   onAgents(AGENTS);
   field.update(el, { mode: 'launch' }, graph);
-  assert.match(el.btns[0].innerHTML, /<span>Sonnet<\/span><span[^>]*>High/);
+  assert.match(el.btns[0].innerHTML, /<span[^>]*>Sonnet<\/span><span[^>]*>High/);
 });
 
 test('a rejected submit is caught and logged', async () => {
@@ -90,8 +104,8 @@ test('a rejected submit is caught and logged', async () => {
 test('a pinned slot from settings overrides the ranking', () => {
   const { field, el } = setup({ settings: { slot1: 'fable:high' } });
   field.update(el, { mode: 'launch' }, graph);
-  assert.match(el.btns[0].innerHTML, /<span>Fable<\/span><span[^>]*>High/);
-  assert.match(el.btns[1].innerHTML, /<span>Sonnet<\/span><span[^>]*>High/);
+  assert.match(el.btns[0].innerHTML, /<span[^>]*>Fable<\/span><span[^>]*>High/);
+  assert.match(el.btns[1].innerHTML, /<span[^>]*>Sonnet<\/span><span[^>]*>High/);
 });
 
 test('the slots setting sets how many buttons show; default is three', () => {
@@ -126,7 +140,7 @@ const RUNTIMES = [{ id: 'local', label: 'Local', ownsModel: false }, { id: 'bifr
 test('a slot pinned to a model-owning runtime shows its model, effort and runtime, and launches on it', async () => {
   const { field, el, binds, submits } = setup({ settings: { slot1: 'gpt-5.4:high@bifrost' }, runtimes: RUNTIMES });
   field.update(el, { mode: 'launch' }, graph);
-  assert.match(el.btns[0].innerHTML, /<span>gpt-5\.4<\/span><span[^>]*>High · Bifrost<\/span>/);
+  assert.match(el.btns[0].innerHTML, /<span[^>]*>gpt-5\.4<\/span><span[^>]*>High · Bifrost<\/span>/);
   assert.equal(el.btns[0].title, 'Launch with gpt-5.4 · High · Bifrost (⌘1)');
   binds[0].run();
   await new Promise((r) => setImmediate(r));
@@ -136,5 +150,5 @@ test('a slot pinned to a model-owning runtime shows its model, effort and runtim
 test('a runtime pin is ignored when that runtime is not offered', () => {
   const { field, el } = setup({ settings: { slot1: 'gpt-5.4@bifrost' } });
   field.update(el, { mode: 'launch' }, graph);
-  assert.match(el.btns[0].innerHTML, /<span>Sonnet<\/span>/);
+  assert.match(el.btns[0].innerHTML, /<span[^>]*>Sonnet<\/span>/);
 });

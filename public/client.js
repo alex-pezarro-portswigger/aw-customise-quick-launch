@@ -51,7 +51,9 @@ export default {
       hides: ['quickLaunch'],
 
       mount(el) {
-        el.innerHTML = `<div class="quick-launch" style="display:grid;grid-template-columns:repeat(${PER_ROW},auto);gap:6px">${'<button type="button" class="ghost quick-launch-btn" style="white-space:nowrap"></button>'.repeat(MAX_SLOTS)}</div>`;
+        // minmax(0,…) + min-width:0 let the row shrink to the footer's free space
+        // (beside Cancel/Launch) instead of overflowing it; long labels ellipsize.
+        el.innerHTML = `<div class="quick-launch" style="display:grid;grid-template-columns:repeat(${PER_ROW},minmax(0,max-content));gap:6px;min-width:0">${'<button type="button" class="ghost quick-launch-btn" style="white-space:nowrap;min-width:0"></button>'.repeat(MAX_SLOTS)}</div>`;
         row = el.querySelector('.quick-launch');
         buttons = [...el.querySelectorAll('.quick-launch-btn')];
         buttons.forEach((b, i) => b.addEventListener('click', () => launch(i)));
@@ -78,9 +80,10 @@ export default {
           // Model on top, effort (and runtime) under it, so three buttons fit on one row.
           const cut = text.indexOf(' · ');
           const [name, effort] = cut < 0 ? [text, ''] : [text.slice(0, cut), text.slice(cut + 3)];
-          btn.innerHTML = `${QUICK_LAUNCH_ICON}<span style="display:inline-flex;flex-direction:column;align-items:flex-start;line-height:1.15">`
-            + `<span>${esc(name)}</span>${effort ? `<span style="font-size:0.8em;opacity:0.7">${esc(effort)}</span>` : ''}</span>`
-            + ` <span class="kbd">⌘${i + 1}</span>`;
+          const line = 'max-width:100%;overflow:hidden;text-overflow:ellipsis';
+          btn.innerHTML = `${QUICK_LAUNCH_ICON}<span style="display:inline-flex;flex-direction:column;align-items:flex-start;line-height:1.15;min-width:0;overflow:hidden">`
+            + `<span style="${line}">${esc(name)}</span>${effort ? `<span style="${line};font-size:0.8em;opacity:0.7">${esc(effort)}</span>` : ''}</span>`
+            + ` <span class="kbd" style="flex:0 0 auto">⌘${i + 1}</span>`;
           btn.title = `Launch with ${text} (⌘${i + 1})`;
         });
       },
